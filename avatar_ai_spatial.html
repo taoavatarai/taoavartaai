@@ -653,21 +653,21 @@ canvas#mainCanvas{display:block;}
           <span class="slider-name">Chất lượng chi tiết</span>
           <span class="slider-val" id="qv">7</span>
         </div>
-        <input type="range" min="1" max="10" value="7" oninput="document.getElementById('qv').textContent=this.value">
+        <input type="range" id="detailSlider" min="1" max="10" value="7" oninput="document.getElementById('qv').textContent=this.value">
       </div>
       <div class="slider-row">
         <div class="slider-header">
           <span class="slider-name">CFG Scale</span>
           <span class="slider-val" id="cv">7.5</span>
         </div>
-        <input type="range" min="10" max="200" value="75" oninput="document.getElementById('cv').textContent=(this.value/10).toFixed(1)">
+        <input type="range" id="cfgSlider" min="10" max="200" value="75" oninput="document.getElementById('cv').textContent=(this.value/10).toFixed(1)">
       </div>
       <div class="slider-row">
         <div class="slider-header">
           <span class="slider-name">Sức mạnh phong cách</span>
           <span class="slider-val" id="sv">0.75</span>
         </div>
-        <input type="range" min="0" max="100" value="75" oninput="document.getElementById('sv').textContent=(this.value/100).toFixed(2)">
+        <input type="range" id="strengthSlider" min="0" max="100" value="75" oninput="document.getElementById('sv').textContent=(this.value/100).toFixed(2)">
       </div>
     </div>
 
@@ -800,14 +800,14 @@ canvas#mainCanvas{display:block;}
             <span class="slider-name">Độ sáng</span>
             <span class="slider-val" id="brv">0.0</span>
           </div>
-          <input type="range" min="-100" max="100" value="0" oninput="document.getElementById('brv').textContent=(this.value>0?'+':'')+this.value;applyAdj()">
+          <input type="range" id="brightnessSlider" min="-100" max="100" value="0" oninput="document.getElementById('brv').textContent=(this.value>0?'+':'')+this.value;applyAdj()">
         </div>
         <div class="slider-row">
           <div class="slider-header">
             <span class="slider-name">Độ bão hòa</span>
             <span class="slider-val" id="stv">1.0</span>
           </div>
-          <input type="range" min="0" max="200" value="100" oninput="document.getElementById('stv').textContent=(this.value/100).toFixed(1);applyAdj()">
+          <input type="range" id="saturationSlider" min="0" max="200" value="100" oninput="document.getElementById('stv').textContent=(this.value/100).toFixed(1);applyAdj()">
         </div>
       </div>
     </div>
@@ -934,10 +934,42 @@ const _STYLE_TAGS={
   'Pixel Art':'pixel art, retro 16-bit game sprite, crisp clean pixels',
 };
 
+function _getSliderModifiers(){
+  const detail  = parseInt(document.getElementById('detailSlider').value)||7;
+  const cfg     = (parseInt(document.getElementById('cfgSlider').value)||75)/10;
+  const strength= (parseInt(document.getElementById('strengthSlider').value)||75)/100;
+  const parts=[];
+
+  // Detail Quality (1-10) → prompt keywords
+  if(detail<=2)      parts.push('rough sketch, minimal detail, loose lines');
+  else if(detail<=4) parts.push('simple illustration, moderate detail');
+  else if(detail<=6) parts.push('detailed, clean linework');
+  else if(detail<=8) parts.push('highly detailed, intricate, sharp details');
+  else if(detail<=9) parts.push('ultra detailed, extremely intricate, 8k resolution');
+  else               parts.push('hyper detailed, masterful precision, 8k uhd, professional artwork');
+
+  // CFG Scale (1.0-20.0) → how literally prompt is followed
+  if(cfg<=3)       parts.push('loose dreamlike interpretation, abstract artistic freedom');
+  else if(cfg<=5)  parts.push('soft artistic interpretation');
+  else if(cfg>=15) parts.push('extremely literal, exactly as described, strict prompt adherence');
+  else if(cfg>=12) parts.push('very literal composition, closely matching description');
+  // 5-12: balanced — no modifier needed
+
+  // Style Strength (0.00-1.00) → style intensity
+  if(strength<=0.25)      parts.push('subtle style hints, mostly neutral base');
+  else if(strength<=0.45) parts.push('light style application');
+  else if(strength>=0.90) parts.push(`extreme ${(curStyle||'').toLowerCase()} intensity, full immersive aesthetic`);
+  else if(strength>=0.75) parts.push(`strong ${(curStyle||'').toLowerCase()} style, bold aesthetic`);
+  // 0.45-0.75: moderate — no modifier needed
+
+  return parts.join(', ');
+}
+
 async function fetchAI(prompt,style,seed,w,h){
   try{
-    const tag=_STYLE_TAGS[style]||_STYLE_TAGS['Anime'];
-    const full=`${prompt?prompt+', ':''}${tag}, masterpiece, best quality, sharp focus`;
+    const tag =_STYLE_TAGS[style]||_STYLE_TAGS['Anime'];
+    const mods=_getSliderModifiers();
+    const full=`${prompt?prompt+', ':''}${tag}, ${mods}, masterpiece, best quality, sharp focus`;
     const url=`https://image.pollinations.ai/prompt/${encodeURIComponent(full)}`
              +`?width=${w}&height=${h}&seed=${seed}&model=flux&nologo=true&enhance=true`;
     await new Promise((res,rej)=>{
@@ -1390,7 +1422,17 @@ function downloadImg(){
   }catch(e){toast('⚠ Không thể tải ảnh');}
 }
 
-function applyAdj(){/* placeholder */}
+function applyAdj(){
+  const br = parseInt(document.getElementById('brightnessSlider').value)||0;
+  const sat= parseInt(document.getElementById('saturationSlider').value)||100;
+  const brightness=(1+(br/100)).toFixed(2);
+  const saturate=(sat/100).toFixed(2);
+  const filter=`brightness(${brightness}) saturate(${saturate})`;
+  const aiImg=document.getElementById('aiResultImg');
+  if(aiImg)aiImg.style.filter=filter;
+  const cv=document.getElementById('mainCanvas');
+  if(cv)cv.style.filter=filter;
+}
 
 function toast(msg){
   const el=document.getElementById('toastEl');

@@ -1,7 +1,7 @@
 # 📋 WORKFLOW — AvatarAI Spatial
 
 > Cập nhật lần cuối: 2026-06-14  
-> Trạng thái tổng thể: 🟢 AI thật + Lịch sử localStorage — Pollinations.ai (Flux model)
+> Trạng thái tổng thể: 🟢 AI thật + Lịch sử + Sliders hoạt động — Pollinations.ai (Flux model)
 
 ---
 
@@ -39,7 +39,22 @@
 - [x] Prompt rỗng → tự dùng prompt mặc định
 - [x] AI image hiển thị qua `<img>` overlay (tránh canvas CORS taint)
 
-### 4. Lịch Sử Bền Vững (localStorage) ✨ MỚI
+### 4. Lịch Sử Bền Vững (localStorage)
+- [x] Lưu tối đa 40 ảnh vào `localStorage` (key: `avatarAI_history`)
+- [x] Mỗi item lưu: prompt, style, seed, width, height, timestamp, thumbnail URL
+- [x] Tải lại lịch sử khi refresh trang (không mất dữ liệu)
+- [x] Hover thumbnail → tooltip hiển thị style, prompt, seed, ngày giờ
+- [x] Nút "↩ Khôi phục cài đặt" trong tooltip → restore prompt + style + seed
+- [x] Nút "×" xóa từng ảnh / "Xóa tất cả" / badge đếm số ảnh
+
+### 5. Sliders Hoạt Động Thật ✨ MỚI
+- [x] **Chất lượng chi tiết (1-10)** → prompt keywords: rough sketch / detailed / ultra detailed / hyper detailed
+- [x] **CFG Scale (1.0-20.0)** → mức độ "literal": loose dreamlike / balanced / extremely literal
+- [x] **Sức mạnh phong cách (0.00-1.00)** → style intensity: subtle hints / moderate / bold / extreme
+- [x] **Độ sáng** → CSS `brightness()` realtime trên ảnh (không cần regenerate)
+- [x] **Độ bão hòa** → CSS `saturate()` realtime trên ảnh (không cần regenerate)
+
+### ~~4. Lịch Sử Bền Vững (localStorage) ✨ MỚI~~
 - [x] Lưu tối đa 40 ảnh vào `localStorage` (key: `avatarAI_history`)
 - [x] Mỗi item lưu: prompt, style, seed, width, height, timestamp, thumbnail URL
 - [x] Tải lại lịch sử khi refresh trang (không mất dữ liệu)
@@ -60,9 +75,7 @@
 
 ### Ưu tiên trung bình 🟡
 
-- [ ] **Các slider hoạt động thật** — CFG Scale, Detail Quality, Style Strength
-  - Hiện là UI placeholder
-  - Cần truyền vào API dưới dạng prompt modifiers hoặc API params
+- [x] ~~**Các slider hoạt động thật**~~ ✅ Hoàn thành — xem mục 5 bên dưới
 
 - [ ] **Cài Gunicorn** cho production deploy
   - Dev server Flask không phù hợp production
