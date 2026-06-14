@@ -216,6 +216,16 @@ textarea::placeholder{color:rgba(255,255,255,0.2);}
   font-size:10px;color:rgba(201,168,76,0.7);cursor:pointer;
   display:flex;align-items:center;gap:4px;
 }
+.rand-btn{
+  display:flex;align-items:center;gap:4px;
+  font-size:10px;font-family:'Inter',sans-serif;
+  color:rgba(140,200,255,0.65);cursor:pointer;
+  background:none;border:none;padding:0;
+  transition:color 0.15s,transform 0.15s;
+}
+.rand-btn:hover{color:rgba(140,200,255,1);}
+.rand-btn.spin .rand-icon{display:inline-block;animation:spinOnce 0.35s ease-out;}
+@keyframes spinOnce{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
 
 /* Quick tags */
 .qtags{display:flex;flex-wrap:wrap;gap:6px;}
@@ -651,7 +661,12 @@ canvas#mainCanvas{display:block;}
         <textarea id="promptTxt" placeholder="Nhân vật anime nữ, tóc xanh dài, mắt tím, áo trắng, phong cách cyberpunk, ánh sáng neon..."></textarea>
         <div class="prompt-footer">
           <span class="char-ct" id="charCt">0 / 500</span>
-          <span class="tag-add">+ thêm tag</span>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <button class="rand-btn" id="randBtn" onclick="randomPrompt()" title="Tạo mô tả ngẫu nhiên">
+              <span class="rand-icon">🎲</span><span>Ngẫu nhiên</span>
+            </button>
+            <span class="tag-add">+ thêm tag</span>
+          </div>
         </div>
       </div>
     </div>
@@ -922,6 +937,56 @@ const ta=document.getElementById('promptTxt');
 ta.addEventListener('input',()=>document.getElementById('charCt').textContent=ta.value.trim().length+' / 500');
 
 function addTag(t){ta.value=(ta.value.trim()?(ta.value.trim()+', '):'')+t;ta.dispatchEvent(new Event('input'));}
+
+// ── RANDOM PROMPT ──
+const _RAND_PROMPTS=[
+  'Nữ thần chiến tranh tóc bạch kim, mắt tím huyền bí, giáp vàng khắc họa tiết rồng, đứng trên đỉnh núi mây phủ, phong cách fantasy epic',
+  'Samurai nam điển trai, tóc đen búi cao, mắt sắc bén như dao, kimono đen thêu hoa anh đào đỏ, nền hoàng hôn Nhật Bản',
+  'Cô gái cyberpunk tóc hồng neon, mắt LED xanh, áo khoác da đen, găng tay cơ học, nền thành phố mưa đêm neon sáng rực',
+  'Pháp sư già uy nghi, râu trắng dài, áo choàng xanh đậm thêu chòm sao, cầm gậy pha lê phát sáng, nền thư viện ma thuật',
+  'Thiên thần nữ cánh trắng, tóc vàng bồng bềnh, mắt xanh dương trong vắt, váy trắng bồng bềnh phát hào quang, nền mây trên cao',
+  'Ninja nữ hiện đại, mặt nạ nửa mặt, tóc đỏ đuôi ngựa, trang phục đen ôm sát, đứng trên mái nhà đêm thành phố tương lai',
+  'Hoàng tử elven tai nhọn, tóc bạch kim dài, mắt xanh lá, áo giáp mithril khắc hoa văn, nền rừng cổ thụ ánh bình minh',
+  'Ca sĩ idol Kpop nữ, makeup sắc sảo, tóc gradient xanh hồng, trang phục sân khấu lấp lánh, nền sân khấu concert ánh đèn',
+  'Thám tử noir nam, áo vest đen, mũ fedora, mắt sắc bén, đứng dưới mưa đêm phố cổ đèn đường vàng, phong cách film noir',
+  'Rồng nhân hình nữ, vảy xanh ngọc trên má, mắt dọc vàng rực, tóc đen ánh xanh, áo lụa phương Đông, nền cung điện cổ',
+  'Cậu bé phù thủy học viện, tóc nâu xoăn, mắt nâu to, đồng phục áo choàng tím, ôm cây gậy phát sáng, nền lâu đài huyền bí',
+  'Cô gái mèo tai thú, tóc nâu mềm mại, tai mèo xám, đuôi mèo dài, áo thun mellow, mắt hổ phách, nền căn phòng cozy ấm áp',
+  'Chiến binh Viking nữ, tóc đỏ tết bím, mắt xanh xám, áo giáp da và kim loại, khiên gỗ, nền fjord sương mù bình minh',
+  'Hacker thiên tài, kính AR phát sáng, áo hoodie đen, ngón tay gõ phím holographic, xung quanh code xanh rơi như mưa',
+  'Công chúa đại dương, tóc xanh lam dài phấp phới, mắt ngọc lục bảo, vương miện san hô, váy bong bóng nước, nền đại dương',
+  'Bác sĩ robot tương lai, nửa người nửa máy, mắt scanner đỏ, áo blouse trắng, tay cơ học chính xác, nền phòng lab hi-tech',
+  'Thần rừng nữ, tóc nâu đất xen lá xanh, mắt màu hổ phách, da nâu, hoa dại cài trên đầu, nền rừng già ánh sáng xuyên lá',
+  'Phi công vũ trụ nữ, tóc đen ngắn, mắt nâu sắc bén, áo phi hành gia trắng hiện đại, mũ kính phản chiếu ngân hà, nền vũ trụ',
+  'Ác quỷ quyến rũ nam, tóc đen dài, mắt đỏ rực, sừng nhỏ ẩn trong tóc, áo vest đỏ đen, mỉm cười bí hiểm, nền lửa tím',
+  'Vũ nữ cung đình, tóc đen cài trâm ngọc, trang phục truyền thống Việt thêu phượng hoàng, tư thế múa uyển chuyển, nền sân đình',
+  'Siêu anh hùng trẻ, áo cape xanh phát sáng, mắt năng lượng vàng, tóc nâu bay trong gió, đứng trên tòa nhà cao chọc trời',
+  'Tiên nữ hoa anh đào, tóc hồng nhạt dài, tai nhọn nhỏ, váy hoa anh đào bay, ngồi trên cành hoa nở, nền trăng tròn',
+  'Chiến giáp cơ động nữ, tóc ngắn bạch kim, mắt xanh điện, áo giáp tím bạc khớp nối cơ học, nền chiến trường tương lai',
+  'Nghệ nhân rèn kiếm, tóc bạc già dặn, cơ bắp rắn chắc, tạp dề da, cầm kiếm còn đỏ lửa, nền lò rèn khói lửa mờ ảo',
+  'Nữ xạ thủ elf, tai nhọn dài, tóc vàng đuôi ngựa, áo giáp da xanh lá, cung thần, mắt nhắm ngắm bắn, nền rừng ban ngày',
+  'Nghệ sĩ đường phố, tóc xoăn đen, quần áo đầy màu sơn, tai nghe to, đang vẽ graffiti phát sáng neon trên tường xám đêm',
+  'Công chúa xứ lạnh, tóc bạch kim, mắt băng xanh, vương miện băng, váy trắng bạc lấp lánh, nền lâu đài tuyết bão',
+  'Bộ lạc chiến binh nữ, sơn mặt đỏ trắng, tóc tết bím nhiều lớp, áo giáp da thú, giáo dài, nền thảo nguyên hoàng hôn',
+  'DJ âm nhạc tương lai, tai nghe cơ học, mắt kính đổi màu theo nhịp, tóc nhiều màu gradient, nền club đèn laser neon',
+  'Thần kiếm cổ đại, tóc trắng xoã dài, mắt bạc, áo trắng bay phấp phới, cầm kiếm ánh sáng, nền hư không vũ trụ trắng tinh',
+];
+function randomPrompt(){
+  const pool=_RAND_PROMPTS;
+  const pick=pool[Math.floor(Math.random()*pool.length)];
+  ta.value=pick;
+  ta.dispatchEvent(new Event('input'));
+  // spin animation
+  const btn=document.getElementById('randBtn');
+  btn.classList.remove('spin');
+  void btn.offsetWidth;
+  btn.classList.add('spin');
+  setTimeout(()=>btn.classList.remove('spin'),400);
+  // flash textarea border
+  const shell=ta.closest('.prompt-shell');
+  shell.style.borderColor='rgba(140,200,255,0.5)';
+  setTimeout(()=>shell.style.borderColor='',600);
+}
 
 // ── NEGATIVE PROMPT ──
 function addNeg(t){
