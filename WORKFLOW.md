@@ -1,7 +1,7 @@
 # 📋 WORKFLOW — AvatarAI Spatial
 
 > Cập nhật lần cuối: 2026-06-14  
-> Trạng thái tổng thể: 🟢 AI thật + Lịch sử + Sliders + Negative Prompt — Pollinations.ai (Flux model)
+> Trạng thái tổng thể: 🟢 AI thật + Lịch sử + Sliders + Negative Prompt + Export PNG/JPG/WebP — Pollinations.ai (Flux model)
 
 ---
 

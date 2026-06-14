@@ -470,6 +470,39 @@ canvas#mainCanvas{display:block;}
   color:rgba(255,255,255,0.5);border:1px solid rgba(201,168,76,0.12);
 }
 .act-btn:hover{transform:translateY(-1px);opacity:0.9;}
+.act-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+.export-wrap{position:relative;display:flex;}
+.export-split-main{
+  border-radius:10px 0 0 10px !important;border-right:none !important;
+}
+.export-split-arrow{
+  padding:8px 10px !important;border-radius:0 10px 10px 0 !important;
+  border-left:1px solid rgba(255,255,255,0.1) !important;
+  background:linear-gradient(135deg,rgba(201,168,76,0.55),rgba(78,100,200,0.65)) !important;
+  color:rgba(255,255,255,0.8) !important;border:1px solid rgba(201,168,76,0.35) !important;
+  font-size:10px;cursor:pointer;transition:all 0.15s;
+}
+.export-split-arrow:hover{opacity:0.9;transform:translateY(-1px);}
+.export-dropdown{
+  position:absolute;bottom:calc(100% + 6px);left:0;
+  background:rgba(18,14,4,0.97);border:1px solid rgba(201,168,76,0.2);
+  border-radius:10px;padding:4px;min-width:160px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.6);
+  display:none;flex-direction:column;gap:2px;z-index:50;
+  backdrop-filter:blur(16px);
+}
+.export-dropdown.open{display:flex;}
+.export-opt{
+  display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:7px;
+  cursor:pointer;transition:background 0.12s;color:rgba(255,255,255,0.7);font-size:12px;
+}
+.export-opt:hover{background:rgba(201,168,76,0.1);color:rgba(255,255,255,0.95);}
+.export-opt-badge{
+  font-size:9px;padding:1px 6px;border-radius:5px;font-weight:700;letter-spacing:0.5px;margin-left:auto;
+}
+.badge-png{background:rgba(78,140,255,0.15);color:rgba(120,180,255,0.8);border:1px solid rgba(78,140,255,0.2);}
+.badge-jpg{background:rgba(255,140,60,0.12);color:rgba(255,170,80,0.8);border:1px solid rgba(255,140,60,0.2);}
+.badge-webp{background:rgba(80,200,120,0.12);color:rgba(100,220,140,0.8);border:1px solid rgba(80,200,120,0.2);}
 
 /* ── RIGHT PANEL ── */
 .right{
@@ -786,10 +819,27 @@ canvas#mainCanvas{display:block;}
     </div>
 
     <div class="img-actions" id="imgActions">
-      <button class="act-btn act-primary" onclick="downloadImg()">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Tải về PNG
-      </button>
+      <div class="export-wrap" id="exportWrap">
+        <button class="act-btn act-primary export-split-main" id="exportMainBtn" onclick="downloadImg('png')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span id="exportBtnLabel">Xuất PNG</span>
+        </button>
+        <button class="export-split-arrow" onclick="toggleExportMenu(event)" title="Chọn định dạng">▲</button>
+        <div class="export-dropdown" id="exportDropdown">
+          <div class="export-opt" onclick="downloadImg('png');closeExportMenu()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            PNG — Chất lượng cao<span class="export-opt-badge badge-png">PNG</span>
+          </div>
+          <div class="export-opt" onclick="downloadImg('jpg');closeExportMenu()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            JPG — Nhỏ hơn, nhanh hơn<span class="export-opt-badge badge-jpg">JPG</span>
+          </div>
+          <div class="export-opt" onclick="downloadImg('webp');closeExportMenu()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            WebP — Tối ưu web<span class="export-opt-badge badge-webp">WebP</span>
+          </div>
+        </div>
+      </div>
       <button class="act-btn act-secondary" onclick="generate()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
         Tạo lại
@@ -1537,19 +1587,82 @@ function clearHistory(){
   toast('🗑 Đã xóa toàn bộ lịch sử');
 }
 
-function downloadImg(){
-  if(_apiResult&&_apiResult.url){
-    window.open(_apiResult.url,'_blank');
-    toast('📥 Đang mở ảnh để tải về...');
-    return;
-  }
-  if(!curCanvas)return;
+// ── EXPORT MENU ──
+function toggleExportMenu(e){
+  e.stopPropagation();
+  const dd=document.getElementById('exportDropdown');
+  dd.classList.toggle('open');
+}
+function closeExportMenu(){
+  document.getElementById('exportDropdown').classList.remove('open');
+}
+document.addEventListener('click',function(e){
+  const wrap=document.getElementById('exportWrap');
+  if(wrap&&!wrap.contains(e.target))closeExportMenu();
+});
+
+// ── DOWNLOAD / EXPORT ──
+async function downloadImg(fmt){
+  fmt=fmt||'png';
+  const mainBtn=document.getElementById('exportMainBtn');
+  const label=document.getElementById('exportBtnLabel');
+  const origLabel=label?label.textContent:'Xuất PNG';
+  if(mainBtn){mainBtn.disabled=true;}
+  if(label){label.textContent='Đang xuất...';}
+
+  const MIME={png:'image/png',jpg:'image/jpeg',webp:'image/webp'};
+  const EXT ={png:'.png',jpg:'.jpg',webp:'.webp'};
+  const mime=MIME[fmt]||'image/png';
+  const ext =EXT[fmt]||'.png';
+  const fname='avatar_spatial_'+Date.now()+ext;
+
   try{
-    const a=document.createElement('a');
-    a.href=curCanvas.toDataURL('image/png');
-    a.download='avatar_spatial_'+Date.now()+'.png';
-    a.click();toast('📥 Đang tải về...');
-  }catch(e){toast('⚠ Không thể tải ảnh');}
+    if(_apiResult&&_apiResult.url){
+      // Fetch as blob for true download (not window.open)
+      const resp=await fetch(_apiResult.url);
+      if(!resp.ok)throw new Error('fetch failed '+resp.status);
+      const srcBlob=await resp.blob();
+
+      if(fmt==='png'){
+        // PNG: serve blob directly
+        const objUrl=URL.createObjectURL(srcBlob);
+        const a=document.createElement('a');
+        a.href=objUrl;a.download=fname;a.click();
+        setTimeout(()=>URL.revokeObjectURL(objUrl),2000);
+      } else {
+        // JPG / WebP: draw onto canvas to convert format
+        const bmp=await createImageBitmap(srcBlob);
+        const c=document.createElement('canvas');
+        c.width=bmp.width;c.height=bmp.height;
+        const ctx=c.getContext('2d');
+        if(fmt==='jpg'){ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);}
+        ctx.drawImage(bmp,0,0);
+        const dataUrl=c.toDataURL(mime,0.92);
+        const a=document.createElement('a');
+        a.href=dataUrl;a.download=fname;a.click();
+      }
+      toast('✅ Đã xuất ảnh '+fmt.toUpperCase()+'!');
+    } else if(curCanvas){
+      // Fallback: canvas procedural result
+      const a=document.createElement('a');
+      a.href=curCanvas.toDataURL(mime,0.92);
+      a.download=fname;a.click();
+      toast('✅ Đã xuất ảnh '+fmt.toUpperCase()+'!');
+    } else {
+      toast('⚠ Chưa có ảnh để xuất');
+    }
+  }catch(e){
+    // CORS fallback: open in new tab with instructions
+    if(_apiResult&&_apiResult.url){
+      window.open(_apiResult.url,'_blank');
+      toast('🔗 Mở tab mới — nhấn chuột phải → Lưu ảnh');
+    } else {
+      toast('⚠ Lỗi xuất ảnh: '+e.message);
+    }
+  }finally{
+    if(mainBtn){mainBtn.disabled=false;}
+    if(label){label.textContent=origLabel;}
+  }
 }
 
 function applyAdj(){
