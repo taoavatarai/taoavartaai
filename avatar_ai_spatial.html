@@ -178,6 +178,40 @@ textarea::placeholder{color:rgba(255,255,255,0.2);}
   border-top:1px solid rgba(201,168,76,0.08);
 }
 .char-ct{font-size:10px;color:rgba(255,255,255,0.2);}
+.neg-shell{
+  border-radius:12px;overflow:hidden;
+  border:1px solid rgba(255,80,80,0.12);
+  background:rgba(255,60,60,0.03);
+  transition:border-color 0.2s;position:relative;
+}
+.neg-shell:focus-within{border-color:rgba(255,80,80,0.3);}
+.neg-shell::before{
+  content:'';position:absolute;inset:0;pointer-events:none;border-radius:12px;
+  background:linear-gradient(135deg,rgba(255,60,60,0.04),transparent 60%);
+  opacity:0;transition:opacity 0.3s;
+}
+.neg-shell:focus-within::before{opacity:1;}
+.neg-shell textarea{height:56px;font-size:12px;padding:10px 12px;}
+.neg-label-row{
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;
+}
+.neg-badge{
+  font-size:9px;padding:2px 7px;border-radius:8px;letter-spacing:0.6px;
+  background:rgba(255,60,60,0.12);color:rgba(255,100,100,0.75);
+  border:1px solid rgba(255,60,60,0.18);font-weight:600;
+}
+.neg-clear{
+  font-size:9px;color:rgba(255,255,255,0.2);cursor:pointer;
+  transition:color 0.15s;background:none;border:none;padding:0;
+}
+.neg-clear:hover{color:rgba(255,100,100,0.6);}
+.neg-presets{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
+.neg-tag{
+  font-size:9.5px;padding:3px 8px;border-radius:7px;cursor:pointer;
+  background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);
+  color:rgba(255,255,255,0.35);transition:all 0.15s;white-space:nowrap;
+}
+.neg-tag:hover{background:rgba(255,60,60,0.1);border-color:rgba(255,80,80,0.25);color:rgba(255,120,120,0.8);}
 .tag-add{
   font-size:10px;color:rgba(201,168,76,0.7);cursor:pointer;
   display:flex;align-items:center;gap:4px;
@@ -623,6 +657,25 @@ canvas#mainCanvas{display:block;}
     </div>
 
     <div class="section">
+      <div class="neg-label-row">
+        <div class="panel-label" style="margin-bottom:0">Prompt phủ định</div>
+        <span class="neg-badge">NEGATIVE</span>
+        <button class="neg-clear" onclick="clearNeg()" title="Xóa">✕ xóa</button>
+      </div>
+      <div class="neg-shell">
+        <textarea id="negTxt" placeholder="Những gì KHÔNG muốn có: blurry, bad hands, watermark, text..."></textarea>
+      </div>
+      <div class="neg-presets">
+        <span class="neg-tag" onclick="addNeg('blurry, low quality')">❌ Mờ</span>
+        <span class="neg-tag" onclick="addNeg('bad anatomy, deformed')">❌ Dị dạng</span>
+        <span class="neg-tag" onclick="addNeg('watermark, text, logo')">❌ Watermark</span>
+        <span class="neg-tag" onclick="addNeg('extra limbs, missing limbs')">❌ Tay/chân lạ</span>
+        <span class="neg-tag" onclick="addNeg('ugly, mutated face')">❌ Mặt xấu</span>
+        <span class="neg-tag" onclick="addNeg('nsfw, explicit')">❌ NSFW</span>
+      </div>
+    </div>
+
+    <div class="section">
       <div class="panel-label">Gợi ý nhanh</div>
       <div class="qtags">
         <span class="qtag" onclick="addTag('cinematic portrait')">🎬 Cinematic</span>
@@ -870,6 +923,13 @@ ta.addEventListener('input',()=>document.getElementById('charCt').textContent=ta
 
 function addTag(t){ta.value=(ta.value.trim()?(ta.value.trim()+', '):'')+t;ta.dispatchEvent(new Event('input'));}
 
+// ── NEGATIVE PROMPT ──
+function addNeg(t){
+  const el=document.getElementById('negTxt');
+  el.value=(el.value.trim()?(el.value.trim()+', '):'')+t;
+}
+function clearNeg(){document.getElementById('negTxt').value='';}
+
 // ── PRESETS ──
 const PRESETS={
   warrior:'Chiến binh dũng cảm, áo giáp ánh thép, mắt kiên nghị, tóc đen ngắn, kiếm lớn sau lưng, nền chiến trường khói lửa, anime style',
@@ -970,8 +1030,13 @@ async function fetchAI(prompt,style,seed,w,h){
     const tag =_STYLE_TAGS[style]||_STYLE_TAGS['Anime'];
     const mods=_getSliderModifiers();
     const full=`${prompt?prompt+', ':''}${tag}, ${mods}, masterpiece, best quality, sharp focus`;
+    const negRaw=(document.getElementById('negTxt').value||'').trim();
+    const negFull=negRaw
+      ? negRaw+', blurry, low quality, deformed, bad anatomy, watermark'
+      : 'blurry, low quality, deformed, bad anatomy, watermark';
     const url=`https://image.pollinations.ai/prompt/${encodeURIComponent(full)}`
-             +`?width=${w}&height=${h}&seed=${seed}&model=flux&nologo=true&enhance=true`;
+             +`?width=${w}&height=${h}&seed=${seed}&model=flux&nologo=true&enhance=true`
+             +`&negative_prompt=${encodeURIComponent(negFull)}`;
     await new Promise((res,rej)=>{
       const img=document.getElementById('aiResultImg');
       img.onload=()=>res();
