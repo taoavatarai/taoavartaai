@@ -1,7 +1,7 @@
 # 📋 WORKFLOW — AvatarAI Spatial
 
 > Cập nhật lần cuối: 2026-06-14  
-> Trạng thái tổng thể: 🟢 AI thật đã tích hợp — Pollinations.ai (Flux model)
+> Trạng thái tổng thể: 🟢 AI thật + Lịch sử localStorage — Pollinations.ai (Flux model)
 
 ---
 
@@ -37,16 +37,23 @@
 - [x] Khi AI trả về: vẽ ảnh thật lên canvas, finalize
 - [x] Fallback: nếu AI lỗi → hiển thị canvas vẽ tay như cũ (không crash)
 - [x] Prompt rỗng → tự dùng prompt mặc định
+- [x] AI image hiển thị qua `<img>` overlay (tránh canvas CORS taint)
+
+### 4. Lịch Sử Bền Vững (localStorage) ✨ MỚI
+- [x] Lưu tối đa 40 ảnh vào `localStorage` (key: `avatarAI_history`)
+- [x] Mỗi item lưu: prompt, style, seed, width, height, timestamp, thumbnail URL
+- [x] Tải lại lịch sử khi refresh trang (không mất dữ liệu)
+- [x] Hover thumbnail → tooltip hiển thị style, prompt, seed, ngày giờ
+- [x] Nút "↩ Khôi phục cài đặt" trong tooltip → restore prompt + style + seed
+- [x] Nút "×" xóa từng ảnh khỏi lịch sử
+- [x] Nút "Xóa tất cả" ở góc dưới phải
+- [x] Badge đếm số ảnh trong lịch sử (cạnh chữ "Lịch sử")
 
 ---
 
 ## 🔄 CẦN LÀM TIẾP
 
 ### Ưu tiên cao 🔴
-
-- [ ] **Lưu trữ lịch sử** — Hiện mất khi refresh
-  - Cần: Replit DB hoặc localStorage
-  - Lưu: prompt, style, seed, ảnh thumbnail, timestamp
 
 - [ ] **Update deployment config** — Hiện vẫn là `static`, cần đổi sang `autoscale` vì có Flask backend
   - File: `.replit` → thêm `[deployment]` section với run command gunicorn
@@ -79,9 +86,9 @@
 | Hạng mục | Trạng thái | Ghi chú |
 |---|---|---|
 | AI image generation | ✅ Có | Pollinations.ai / Flux model |
-| Backend API | ✅ Có | Flask `/api/generate` |
+| Backend API | ✅ Có | Flask server (tĩnh + route) |
+| Lịch sử bền vững | ✅ Có | localStorage, tối đa 40 items |
 | Slider params ảnh hưởng thật | ❌ Không | CFG/Detail là placeholder |
-| Database lịch sử | ❌ Không | Mất khi refresh |
 | Authentication | ❌ Không | Không có user/login |
 | Gunicorn production server | ❌ Không | Dùng Flask dev server |
 | Error handling UI | ⚠️ Có fallback | Lỗi chỉ log console |
@@ -117,9 +124,9 @@
 ```
 Giai đoạn 1 ✅   UI Prototype hoàn chỉnh
 Giai đoạn 2 ✅   Tích hợp AI API thật (Pollinations.ai / Flux)
-Giai đoạn 3 🔜   Lưu lịch sử + Database
-Giai đoạn 4       Authentication + Credits thật
-Giai đoạn 5       Deploy production (Gunicorn + autoscale)
+Giai đoạn 3 ✅   Lịch sử bền vững (localStorage, 40 items, restore settings)
+Giai đoạn 4 🔜   Slider params thật + Deploy production (Gunicorn + autoscale)
+Giai đoạn 5       Authentication + Credits thật
 ```
 
 ---

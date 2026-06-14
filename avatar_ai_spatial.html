@@ -332,6 +332,10 @@ input[type=range]:hover::-webkit-slider-thumb{
 @keyframes ring-spin{to{transform:rotate(360deg)}}
 
 canvas#mainCanvas{display:block;}
+#aiResultImg{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;border-radius:inherit;display:none;z-index:2;
+}
 
 /* Empty state */
 .empty-holo{
@@ -516,6 +520,42 @@ canvas#mainCanvas{display:block;}
 .hist-thumb canvas{width:100%;height:100%;display:block;}
 .hist-thumb:hover{border-color:rgba(201,168,76,0.5);transform:scale(1.06);}
 .hist-thumb.active{border-color:rgba(240,192,64,0.5);box-shadow:0 0 12px rgba(240,192,64,0.15);}
+.hist-thumb .hist-del{
+  position:absolute;top:2px;right:2px;width:16px;height:16px;border-radius:50%;
+  background:rgba(0,0,0,0.75);border:none;color:rgba(255,255,255,0.7);font-size:9px;
+  display:none;align-items:center;justify-content:center;cursor:pointer;line-height:1;
+}
+.hist-thumb:hover .hist-del{display:flex;}
+.hist-del:hover{background:rgba(180,40,40,0.85)!important;color:#fff!important;}
+.hist-tooltip{
+  position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
+  background:rgba(12,9,0,0.97);border:1px solid rgba(201,168,76,0.25);
+  border-radius:8px;padding:8px 10px;min-width:160px;max-width:220px;
+  font-size:10px;color:rgba(255,255,255,0.8);pointer-events:none;
+  opacity:0;transition:opacity 0.2s;z-index:200;white-space:normal;line-height:1.5;
+  box-shadow:0 4px 20px rgba(0,0,0,0.6);
+}
+.hist-thumb:hover .hist-tooltip{opacity:1;}
+.hist-tooltip-style{color:var(--iris-2);font-weight:600;margin-bottom:3px;}
+.hist-tooltip-prompt{color:rgba(255,255,255,0.55);font-size:9.5px;}
+.hist-restore-btn{
+  display:block;margin-top:6px;padding:3px 0;text-align:center;
+  background:rgba(201,168,76,0.15);border-radius:4px;
+  color:var(--iris-2);font-size:9px;font-weight:600;letter-spacing:0.5px;
+  pointer-events:all;cursor:pointer;border:1px solid rgba(201,168,76,0.2);
+}
+.hist-restore-btn:hover{background:rgba(201,168,76,0.25);}
+.hist-clear-btn{
+  flex-shrink:0;font-size:9px;color:rgba(255,255,255,0.2);cursor:pointer;
+  padding:4px 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.07);
+  background:transparent;letter-spacing:0.5px;transition:all 0.2s;white-space:nowrap;
+}
+.hist-clear-btn:hover{color:rgba(255,100,100,0.7);border-color:rgba(255,100,100,0.2);}
+.hist-count{
+  font-size:9px;color:rgba(201,168,76,0.45);font-weight:500;
+  background:rgba(201,168,76,0.08);padding:2px 6px;border-radius:10px;
+  flex-shrink:0;
+}
 
 /* Toast */
 .toast{
@@ -667,6 +707,7 @@ canvas#mainCanvas{display:block;}
       <div class="holo-glow-ring" id="glowRing"></div>
       <div class="holo-frame" id="holoFrame">
         <canvas id="mainCanvas"></canvas>
+        <img id="aiResultImg" alt="AI avatar">
         <div class="gen-overlay" id="genOverlay">
           <div class="holo-spinner"><div class="holo-spinner-dot"></div></div>
           <div class="gen-text" id="genText">Đang khởi tạo...</div>
@@ -776,8 +817,10 @@ canvas#mainCanvas{display:block;}
   <!-- BOTTOM -->
   <div class="bottom">
     <div class="hist-label">Lịch sử</div>
+    <span class="hist-count" id="histCount">0</span>
     <div class="vdivider"></div>
     <div class="hist-scroll" id="histScroll"></div>
+    <button class="hist-clear-btn" onclick="clearHistory()" title="Xóa toàn bộ lịch sử">Xóa tất cả</button>
   </div>
 
 </div>
@@ -865,6 +908,8 @@ function generate(){
   cv.style.width=dW+'px';cv.style.height=dH+'px';
   curCanvas=cv;
 
+  const aiImg=document.getElementById('aiResultImg');
+  aiImg.style.display='none';aiImg.src='';
   document.getElementById('glowRing').classList.add('active');
   document.getElementById('genOverlay').classList.add('show');
   document.getElementById('imgActions').classList.remove('show');
@@ -895,30 +940,29 @@ async function fetchAI(prompt,style,seed,w,h){
     const full=`${prompt?prompt+', ':''}${tag}, masterpiece, best quality, sharp focus`;
     const url=`https://image.pollinations.ai/prompt/${encodeURIComponent(full)}`
              +`?width=${w}&height=${h}&seed=${seed}&model=flux&nologo=true&enhance=true`;
-    const img=new Image();
-    img.crossOrigin='anonymous';
     await new Promise((res,rej)=>{
+      const img=document.getElementById('aiResultImg');
       img.onload=()=>res();
       img.onerror=()=>rej(new Error('load fail'));
       setTimeout(()=>rej(new Error('timeout')),90000);
       img.src=url;
     });
-    _apiResult={img};
+    _apiResult={url};
   }catch(e){
     console.warn('AI fetch:',e.message);
     _apiResult=null;
+    document.getElementById('aiResultImg').src='';
   }
   _apiDone=true;
   if(_animDone)_applyAndFinalize();
 }
 
 function _applyAndFinalize(){
-  if(_apiResult&&_apiResult.img){
-    try{
-      curCanvas.getContext('2d').drawImage(_apiResult.img,0,0,curW,curH);
-    }catch(e){
-      console.warn('canvas draw:',e);
-    }
+  const aiImg=document.getElementById('aiResultImg');
+  if(_apiResult&&_apiResult.url){
+    aiImg.style.display='block';
+  }else{
+    aiImg.style.display='none';
   }
   finalize(curW,curH);
 }
@@ -1204,26 +1248,146 @@ function finalize(W,H){
   toast('✦ Avatar đã sẵn sàng!');
 }
 
-function addHistory(){
-  if(!curCanvas)return;
-  const wrap=document.createElement('div');wrap.className='hist-thumb active';
-  const mini=document.createElement('canvas');mini.width=64;mini.height=64;
-  mini.getContext('2d').drawImage(curCanvas,0,0,64,64);
-  wrap.appendChild(mini);
-  document.querySelectorAll('.hist-thumb').forEach(x=>x.classList.remove('active'));
-  document.getElementById('histScroll').prepend(wrap);
+// ── HISTORY (localStorage) ──
+const HIST_KEY='avatarAI_history';
+const HIST_MAX=40;
+
+function _loadHistData(){
+  try{return JSON.parse(localStorage.getItem(HIST_KEY)||'[]');}
+  catch{return [];}
+}
+function _saveHistData(arr){
+  try{localStorage.setItem(HIST_KEY,JSON.stringify(arr));}catch(e){console.warn('localStorage full',e);}
+}
+
+function _updateHistCount(arr){
+  document.getElementById('histCount').textContent=arr.length;
+}
+
+function _buildThumbDOM(item){
+  const wrap=document.createElement('div');
+  wrap.className='hist-thumb';
+  wrap.dataset.id=item.id;
+
+  const img=document.createElement('img');
+  img.src=item.thumbnail;
+  img.style.cssText='width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;';
+  wrap.appendChild(img);
+
+  const del=document.createElement('button');
+  del.className='hist-del';del.title='Xóa';del.textContent='×';
+  del.addEventListener('click',e=>{e.stopPropagation();deleteHistItem(item.id);});
+  wrap.appendChild(del);
+
+  const tip=document.createElement('div');
+  tip.className='hist-tooltip';
+  const timeStr=new Date(item.timestamp).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});
+  const dateStr=new Date(item.timestamp).toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'});
+  tip.innerHTML=`<div class="hist-tooltip-style">✦ ${item.style} · ${dateStr} ${timeStr}</div>`
+    +`<div class="hist-tooltip-prompt">${(item.prompt||'(không có prompt)').substring(0,100)}</div>`
+    +`<div class="hist-tooltip-prompt" style="margin-top:3px;color:rgba(201,168,76,0.5)">Seed: ${item.seed} · ${item.width}×${item.height}</div>`
+    +`<div class="hist-restore-btn" data-id="${item.id}">↩ Khôi phục cài đặt</div>`;
+  tip.querySelector('.hist-restore-btn').addEventListener('click',e=>{e.stopPropagation();restoreHistItem(item.id);});
+  wrap.appendChild(tip);
+
   wrap.addEventListener('click',()=>{
     document.querySelectorAll('.hist-thumb').forEach(x=>x.classList.remove('active'));
     wrap.classList.add('active');
   });
+  return wrap;
+}
+
+function addHistory(){
+  if(!curCanvas)return;
+  let thumbnail='';
+  if(_apiResult&&_apiResult.url){
+    thumbnail=_apiResult.url;
+  }else{
+    const mini=document.createElement('canvas');mini.width=64;mini.height=64;
+    try{mini.getContext('2d').drawImage(curCanvas,0,0,64,64);thumbnail=mini.toDataURL('image/jpeg',0.75);}catch(e){}
+  }
+  if(!thumbnail)return;
+
+  const item={
+    id:Date.now().toString(),
+    timestamp:Date.now(),
+    prompt:(document.getElementById('promptTxt').value||'').trim(),
+    style:curStyle,
+    seed:parseInt(document.getElementById('seedInput').value)||42069,
+    width:curW,height:curH,
+    thumbnail,
+    pollinationsUrl:_apiResult?_apiResult.url:null
+  };
+
+  const arr=_loadHistData();
+  arr.unshift(item);
+  if(arr.length>HIST_MAX)arr.splice(HIST_MAX);
+  _saveHistData(arr);
+
+  const scroll=document.getElementById('histScroll');
+  document.querySelectorAll('.hist-thumb').forEach(x=>x.classList.remove('active'));
+  const dom=_buildThumbDOM(item);
+  dom.classList.add('active');
+  scroll.prepend(dom);
+  _updateHistCount(arr);
+}
+
+function loadHistory(){
+  const arr=_loadHistData();
+  const scroll=document.getElementById('histScroll');
+  scroll.innerHTML='';
+  arr.forEach(item=>{scroll.appendChild(_buildThumbDOM(item));});
+  _updateHistCount(arr);
+}
+
+function deleteHistItem(id){
+  let arr=_loadHistData().filter(x=>x.id!==id);
+  _saveHistData(arr);
+  const el=document.querySelector(`.hist-thumb[data-id="${id}"]`);
+  if(el){el.style.opacity='0';el.style.transform='scale(0.7)';setTimeout(()=>el.remove(),200);}
+  _updateHistCount(arr);
+  toast('🗑 Đã xóa');
+}
+
+function restoreHistItem(id){
+  const item=_loadHistData().find(x=>x.id===id);
+  if(!item)return;
+  const ta=document.getElementById('promptTxt');
+  ta.value=item.prompt||'';
+  ta.dispatchEvent(new Event('input'));
+  document.getElementById('seedInput').value=item.seed;
+  curStyle=item.style;
+  document.querySelectorAll('.style-card').forEach(c=>{
+    c.classList.toggle('active',c.dataset.style===item.style);
+  });
+  curW=item.width;curH=item.height;
+  document.querySelectorAll('.sz').forEach(c=>{
+    c.classList.toggle('active',+c.dataset.w===item.width&&+c.dataset.h===item.height);
+  });
+  toast('↩ Đã khôi phục cài đặt!');
+}
+
+function clearHistory(){
+  if(!_loadHistData().length)return;
+  localStorage.removeItem(HIST_KEY);
+  document.getElementById('histScroll').innerHTML='';
+  _updateHistCount([]);
+  toast('🗑 Đã xóa toàn bộ lịch sử');
 }
 
 function downloadImg(){
+  if(_apiResult&&_apiResult.url){
+    window.open(_apiResult.url,'_blank');
+    toast('📥 Đang mở ảnh để tải về...');
+    return;
+  }
   if(!curCanvas)return;
-  const a=document.createElement('a');
-  a.href=curCanvas.toDataURL('image/png');
-  a.download='avatar_spatial_'+Date.now()+'.png';
-  a.click();toast('📥 Đang tải về...');
+  try{
+    const a=document.createElement('a');
+    a.href=curCanvas.toDataURL('image/png');
+    a.download='avatar_spatial_'+Date.now()+'.png';
+    a.click();toast('📥 Đang tải về...');
+  }catch(e){toast('⚠ Không thể tải ảnh');}
 }
 
 function applyAdj(){/* placeholder */}
@@ -1233,6 +1397,9 @@ function toast(msg){
   el.textContent=msg;el.classList.add('show');
   clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),2400);
 }
+
+// ── INIT ──
+loadHistory();
 </script>
 </body>
 </html>
