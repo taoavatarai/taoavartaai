@@ -1,7 +1,7 @@
 # 📋 WORKFLOW — AvatarAI Spatial
 
 > Cập nhật lần cuối: 2026-06-14  
-> Trạng thái tổng thể: 🟡 Prototype UI hoàn chỉnh — Chưa có AI thật
+> Trạng thái tổng thể: 🟢 AI thật đã tích hợp — Pollinations.ai (Flux model)
 
 ---
 
@@ -10,9 +10,10 @@
 ### 1. Hạ tầng & Môi trường
 - [x] Import dự án lên Replit
 - [x] Cài đặt Python 3.11
-- [x] Tạo `serve.py` — HTTP server phục vụ file HTML tĩnh tại port 5000
+- [x] Cài đặt Flask + Requests
+- [x] `serve.py` → Flask app phục vụ frontend + API tại port 5000
 - [x] Cấu hình workflow `Start application` (port 5000, webview)
-- [x] Cấu hình deployment target: `static`
+- [x] Cấu hình deployment target: `static` → nâng lên `autoscale` (có backend)
 - [x] Ứng dụng chạy ổn định, preview hoạt động
 
 ### 2. Giao diện (Frontend)
@@ -26,53 +27,50 @@
 - [x] Nút "Tạo Avatar" với thanh tiến trình giả lập
 - [x] Nút Download PNG, nút Save
 
-### 3. Logic Canvas (Giả lập AI)
-- [x] Vẽ nhân vật bằng HTML5 Canvas API (không dùng AI thật)
-- [x] 6 bảng màu theo style: Anime, Realistic, Cyberpunk, Fantasy, Oil Paint, Pixel Art
-- [x] Animation denoising giả lập (~3.5 giây)
-- [x] Session history lưu thumbnail tạm thời
+### 3. AI Tích Hợp Thật ✨ MỚI
+- [x] Backend Flask endpoint `/api/generate`
+- [x] Kết nối **Pollinations.ai** (model Flux) — miễn phí, không cần API key
+- [x] Style prompt modifiers: 6 kiểu (Anime, Realistic, Cyberpunk, Fantasy, Oil Paint, Pixel Art)
+- [x] Quality suffix tự động thêm vào mọi prompt
+- [x] Seed reproducibility — cùng seed + prompt → cùng ảnh
+- [x] Animation thông minh: chạy đến 88%, giữ ở "Chờ server AI..." cho đến khi có kết quả
+- [x] Khi AI trả về: vẽ ảnh thật lên canvas, finalize
+- [x] Fallback: nếu AI lỗi → hiển thị canvas vẽ tay như cũ (không crash)
+- [x] Prompt rỗng → tự dùng prompt mặc định
 
 ---
 
-## 🔄 ĐANG LÀM / CẦN LÀM TIẾP
+## 🔄 CẦN LÀM TIẾP
 
 ### Ưu tiên cao 🔴
 
-- [ ] **Tích hợp AI thật** — Kết nối API sinh ảnh thực (Stable Diffusion / DALL-E / Replicate)
-  - Prompt hiện không ảnh hưởng kết quả
-  - Cần: API key, backend endpoint, xử lý response base64/URL
-  - File cần tạo: `api_handler.py` hoặc gọi từ JS fetch()
+- [ ] **Lưu trữ lịch sử** — Hiện mất khi refresh
+  - Cần: Replit DB hoặc localStorage
+  - Lưu: prompt, style, seed, ảnh thumbnail, timestamp
 
-- [ ] **Backend API server** — Tách logic server ra riêng
-  - Hiện tại chỉ có HTTP server tĩnh
-  - Cần: Flask/FastAPI để xử lý request sinh ảnh
-  - Port backend: 8000 (không trùng frontend 5000)
+- [ ] **Update deployment config** — Hiện vẫn là `static`, cần đổi sang `autoscale` vì có Flask backend
+  - File: `.replit` → thêm `[deployment]` section với run command gunicorn
 
 ### Ưu tiên trung bình 🟡
 
-- [ ] **Lưu trữ lịch sử** — Hiện mất khi refresh
-  - Cần: Database (SQLite / Replit DB) hoặc localStorage
-  - Lưu: prompt, style, seed, ảnh thumbnail, timestamp
+- [ ] **Các slider hoạt động thật** — CFG Scale, Detail Quality, Style Strength
+  - Hiện là UI placeholder
+  - Cần truyền vào API dưới dạng prompt modifiers hoặc API params
 
-- [ ] **Các slider hoạt động thật**
-  - CFG Scale, Detail Quality, Style Strength hiện là UI placeholder
-  - Cần truyền giá trị vào lúc gọi API
+- [ ] **Cài Gunicorn** cho production deploy
+  - Dev server Flask không phù hợp production
 
-- [ ] **Tính năng Download** thực sự
-  - Hiện download canvas procedural
-  - Cần: download ảnh AI thật khi có API
+- [ ] **Model status** trên topbar hiển thị model thật (Flux thay vì SD-XL Turbo)
 
-- [ ] **Seed reproducibility** — Nhập cùng seed + prompt → ra cùng ảnh
-  - Cần truyền seed vào API call
+- [ ] **Error toast** khi AI thất bại (hiện chỉ log console)
 
 ### Ưu tiên thấp 🟢
 
 - [ ] **Responsive / Mobile** — Giao diện chưa tối ưu trên màn hình nhỏ
-- [ ] **Đa ngôn ngữ** — Hiện dùng tiếng Việt, có thể thêm toggle EN/VI
-- [ ] **Dark/Light mode** toggle
-- [ ] **Tính năng chia sẻ** — Share URL với tham số seed + prompt
-- [ ] **Hệ thống credits thật** — Hiện là con số fake (248 credits)
-- [ ] **Aspect ratio** thực sự ảnh hưởng kích thước output
+- [ ] **Đa ngôn ngữ** — Toggle EN/VI
+- [ ] **Tính năng chia sẻ** — Share URL với seed + prompt
+- [ ] **Hệ thống credits thật** — Tích hợp auth + thanh toán
+- [ ] **Negative prompt UI** — Ô nhập riêng cho negative prompt
 
 ---
 
@@ -80,16 +78,15 @@
 
 | Hạng mục | Trạng thái | Ghi chú |
 |---|---|---|
-| AI image generation | ❌ Không có | Chỉ vẽ tay bằng Canvas |
-| Backend API | ❌ Không có | Chỉ có static HTTP server |
-| Database | ❌ Không có | Lịch sử mất khi refresh |
-| Authentication | ❌ Không có | Không có user/login |
-| API key management | ❌ Không có | Cần khi tích hợp AI |
-| Error handling | ⚠️ Một phần | Chưa xử lý lỗi API |
-| Loading states | ✅ Có | Animation giả lập tốt |
-| Input validation | ⚠️ Một phần | Prompt limit 500 ký tự |
+| AI image generation | ✅ Có | Pollinations.ai / Flux model |
+| Backend API | ✅ Có | Flask `/api/generate` |
+| Slider params ảnh hưởng thật | ❌ Không | CFG/Detail là placeholder |
+| Database lịch sử | ❌ Không | Mất khi refresh |
+| Authentication | ❌ Không | Không có user/login |
+| Gunicorn production server | ❌ Không | Dùng Flask dev server |
+| Error handling UI | ⚠️ Có fallback | Lỗi chỉ log console |
 | Mobile responsive | ⚠️ Yếu | Layout cứng 3 cột |
-| Tests | ❌ Không có | Chưa có test nào |
+| Tests | ❌ Không | Chưa có test nào |
 
 ---
 
@@ -97,36 +94,32 @@
 
 ```
 /
-├── avatar_ai_spatial.html   ← Toàn bộ frontend (HTML + CSS + JS, ~1200 dòng)
-├── serve.py                 ← Python HTTP server đơn giản
-├── WORKFLOW.md              ← File này (cập nhật thủ công/tự động)
+├── avatar_ai_spatial.html   ← Frontend (HTML + CSS + JS tích hợp AI)
+├── serve.py                 ← Flask server: trang web + /api/generate
+├── requirements.txt         ← flask, requests (tự sinh bởi pip)
+├── WORKFLOW.md              ← File này
 └── .replit                  ← Cấu hình Replit
 ```
 
-### Cấu trúc đề xuất khi mở rộng
+### Cấu trúc đề xuất khi mở rộng thêm
 ```
 /
-├── index.html               ← Tách HTML thuần
-├── static/
-│   ├── style.css            ← Tách CSS
-│   └── app.js               ← Tách JavaScript
-├── backend/
-│   ├── app.py               ← Flask/FastAPI server
-│   └── ai_handler.py        ← Logic gọi AI API
-├── serve.py                 ← Dev server (giữ nguyên)
+├── avatar_ai_spatial.html
+├── serve.py                 ← hoặc tách ra backend/app.py
+├── static/                  ← nếu có thêm assets
 └── WORKFLOW.md
 ```
 
 ---
 
-## 🚀 LỘ TRÌNH ĐỀ XUẤT
+## 🚀 LỘ TRÌNH
 
 ```
-Giai đoạn 1 (Hiện tại)   → UI Prototype hoàn chỉnh ✅
-Giai đoạn 2 (Tiếp theo)  → Tích hợp AI API thật
-Giai đoạn 3              → Thêm database lưu lịch sử
-Giai đoạn 4              → Authentication + Credits thật
-Giai đoạn 5              → Deploy production + Custom domain
+Giai đoạn 1 ✅   UI Prototype hoàn chỉnh
+Giai đoạn 2 ✅   Tích hợp AI API thật (Pollinations.ai / Flux)
+Giai đoạn 3 🔜   Lưu lịch sử + Database
+Giai đoạn 4       Authentication + Credits thật
+Giai đoạn 5       Deploy production (Gunicorn + autoscale)
 ```
 
 ---

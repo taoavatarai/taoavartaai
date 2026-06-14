@@ -805,6 +805,7 @@ canvas#mainCanvas{display:block;}
 
 // ── STATE ──
 let curW=512,curH=512,curStyle='Anime',generating=false,curCanvas=null,startTime=0;
+let _apiDone=false,_animDone=false,_apiResult=null;
 
 // ── STYLE SELECT ──
 document.getElementById('styleGrid').addEventListener('click',e=>{
@@ -848,18 +849,15 @@ function randomSeed(){document.getElementById('seedInput').value=Math.floor(Math
 function generate(){
   if(generating)return;
   generating=true;startTime=Date.now();
+  _apiDone=false;_animDone=false;_apiResult=null;
 
-  // Show canvas wrap
   document.getElementById('emptyState').style.display='none';
-  const wrap=document.getElementById('canvasWrap');
-  wrap.style.display='block';
+  document.getElementById('canvasWrap').style.display='block';
 
-  // Setup canvas
   const frame=document.getElementById('holoFrame');
   const maxW=Math.min(curW,document.getElementById('centerPanel').clientWidth-80);
   const scale=maxW/curW;
-  const dW=Math.round(curW*scale);
-  const dH=Math.round(curH*scale);
+  const dW=Math.round(curW*scale),dH=Math.round(curH*scale);
   frame.style.width=dW+'px';frame.style.height=dH+'px';
 
   const cv=document.getElementById('mainCanvas');
@@ -875,26 +873,73 @@ function generate(){
   btn.disabled=true;btn.classList.add('running');
   btn.innerHTML='<div style="width:14px;height:14px;border:1.5px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.8s linear infinite"></div> Đang xử lý...';
 
+  const prompt=(document.getElementById('promptTxt').value||'').trim()||'beautiful character portrait';
+  const seed=parseInt(document.getElementById('seedInput').value)||42069;
+
+  fetchAI(prompt,curStyle,seed,curW,curH);
   runAnim(cv.getContext('2d'),curW,curH);
 }
 
-const STEPS=['Phân tích prompt...','Khởi tạo latent space...','Denoising bước 1/4...','Denoising bước 2/4...','Denoising bước 3/4...','Hoàn thiện chi tiết...','Upscaling...'];
+const _STYLE_TAGS={
+  'Anime':    'anime style, vibrant cel shading, detailed illustration, beautiful character',
+  'Realistic':'realistic, photorealistic, cinematic lighting, 8k ultra detailed portrait',
+  'Cyberpunk':'cyberpunk aesthetic, neon lights, futuristic, sci-fi, blade runner style',
+  'Fantasy':  'fantasy art, magical atmosphere, epic digital painting, artstation quality',
+  'Oil Paint':'oil painting masterpiece, rich impasto texture, painterly brushstrokes',
+  'Pixel Art':'pixel art, retro 16-bit game sprite, crisp clean pixels',
+};
+
+async function fetchAI(prompt,style,seed,w,h){
+  try{
+    const tag=_STYLE_TAGS[style]||_STYLE_TAGS['Anime'];
+    const full=`${prompt?prompt+', ':''}${tag}, masterpiece, best quality, sharp focus`;
+    const url=`https://image.pollinations.ai/prompt/${encodeURIComponent(full)}`
+             +`?width=${w}&height=${h}&seed=${seed}&model=flux&nologo=true&enhance=true`;
+    const img=new Image();
+    img.crossOrigin='anonymous';
+    await new Promise((res,rej)=>{
+      img.onload=()=>res();
+      img.onerror=()=>rej(new Error('load fail'));
+      setTimeout(()=>rej(new Error('timeout')),90000);
+      img.src=url;
+    });
+    _apiResult={img};
+  }catch(e){
+    console.warn('AI fetch:',e.message);
+    _apiResult=null;
+  }
+  _apiDone=true;
+  if(_animDone)_applyAndFinalize();
+}
+
+function _applyAndFinalize(){
+  if(_apiResult&&_apiResult.img){
+    try{
+      curCanvas.getContext('2d').drawImage(_apiResult.img,0,0,curW,curH);
+    }catch(e){
+      console.warn('canvas draw:',e);
+    }
+  }
+  finalize(curW,curH);
+}
+
+const STEPS=['Phân tích prompt...','Khởi tạo latent space...','Denoising bước 1/4...','Denoising bước 2/4...','Denoising bước 3/4...','Hoàn thiện chi tiết...','Upscaling...','Chờ server AI...'];
 
 function runAnim(ctx,W,H){
   let prog=0;
   const iv=setInterval(()=>{
-    prog=Math.min(prog+1.4,100);
+    const step=_apiDone?5:(prog<88?1.4:0.15);
+    prog=Math.min(prog+step,100);
     const pct=Math.round(prog);
     document.getElementById('progBar').style.width=pct+'%';
     document.getElementById('genSub').textContent=pct+'%';
-    const si=Math.min(Math.floor(prog/15),STEPS.length-1);
+    const si=(!_apiDone&&prog>=88)?7:Math.min(Math.floor(prog/14),6);
     document.getElementById('genText').textContent=STEPS[si];
-
-    paintFrame(ctx,W,H,prog/100,curStyle);
-
+    paintFrame(ctx,W,H,Math.min(prog/88,1),curStyle);
     if(prog>=100){
       clearInterval(iv);
-      setTimeout(()=>finalize(W,H),400);
+      _animDone=true;
+      if(_apiDone)setTimeout(()=>_applyAndFinalize(),300);
     }
   },35);
 }
